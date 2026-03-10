@@ -86,12 +86,17 @@ class PortfolioOptimizer:
         """Try available solvers in order until one succeeds."""
         for solver in [cp.CLARABEL, cp.SCS]:
             try:
-                prob.solve(solver=solver, **kwargs)
+                kw = {k: v for k, v in kwargs.items()
+                      if not (solver == cp.SCS and k == "warm_start")}
+                prob.solve(solver=solver, **kw)
                 if prob.status not in ("infeasible", "unbounded", None):
                     return
-            except cp.SolverError:
+            except Exception:
                 continue
-        prob.solve(**kwargs)
+        try:
+            prob.solve(**kwargs)
+        except Exception:
+            logger.warning("All CVXPY solvers failed; caller will use fallback.")
 
     # ── Main entry point ──────────────────────────────────────────────────────
 
@@ -119,7 +124,9 @@ class PortfolioOptimizer:
         mu  = np.array(expected_returns).flatten()
         cov = np.array(cov_matrix, dtype=float)
         cov = (cov + cov.T) / 2
-        cov += 1e-8 * np.eye(self.n)
+        min_eig = np.linalg.eigvalsh(cov).min()
+        if min_eig < 1e-6:
+            cov += (1e-6 - min_eig) * np.eye(self.n)
 
         if current_weights is None:
             current_weights = np.ones(self.n) / self.n
