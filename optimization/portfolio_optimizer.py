@@ -223,7 +223,7 @@ class PortfolioOptimizer:
             w >= self.config.min_weight,
             w <= self.config.max_weight,
             cp.sum(cp.abs(w - current_weights)) <= self.config.max_turnover,
-            cp.sqrt(port_var) <= self.config.vol_target,
+            port_var <= self.config.vol_target ** 2,
         ]
 
         # Optional sector constraints
