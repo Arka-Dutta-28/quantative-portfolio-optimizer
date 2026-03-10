@@ -167,7 +167,7 @@ class PortfolioOptimizer:
         ]
 
         prob = cp.Problem(objective, constraints)
-        prob.solve(solver=cp.ECOS, warm_start=True, verbose=False)
+        prob.solve(warm_start=True, verbose=False)
 
         if prob.status in ("optimal", "optimal_inaccurate") and w.value is not None:
             weights = np.array(w.value).flatten()
@@ -207,7 +207,7 @@ class PortfolioOptimizer:
                 k >= 0,
             ]
             prob = cp.Problem(obj, cons)
-            prob.solve(solver=cp.ECOS, verbose=False)
+            prob.solve(verbose=False)
             if prob.status in ("optimal", "optimal_inaccurate") and y.value is not None and k.value and k.value > 1e-10:
                 w_val = (y.value / k.value).flatten()
                 w_val = np.clip(w_val, 0, 1)
@@ -237,7 +237,7 @@ class PortfolioOptimizer:
                     constraints.append(cp.sum(w[indices]) <= limit)
 
         prob = cp.Problem(objective, constraints)
-        prob.solve(solver=cp.ECOS, warm_start=True, verbose=False)
+        prob.solve(warm_start=True, verbose=False)
 
         if prob.status in ("optimal", "optimal_inaccurate") and w.value is not None:
             weights = np.clip(np.array(w.value).flatten(), 0, 1)
