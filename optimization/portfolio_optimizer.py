@@ -81,6 +81,18 @@ class PortfolioOptimizer:
         self.n = len(assets)
         self.config = config or OptimizationConfig()
 
+    @staticmethod
+    def _solve(prob: "cp.Problem", **kwargs) -> None:
+        """Try available solvers in order until one succeeds."""
+        for solver in [cp.CLARABEL, cp.SCS]:
+            try:
+                prob.solve(solver=solver, **kwargs)
+                if prob.status not in ("infeasible", "unbounded", None):
+                    return
+            except cp.SolverError:
+                continue
+        prob.solve(**kwargs)
+
     # ── Main entry point ──────────────────────────────────────────────────────
 
     def optimize(
@@ -105,7 +117,9 @@ class PortfolioOptimizer:
         weights : np.ndarray (n,)
         """
         mu  = np.array(expected_returns).flatten()
-        cov = np.array(cov_matrix)
+        cov = np.array(cov_matrix, dtype=float)
+        cov = (cov + cov.T) / 2
+        cov += 1e-8 * np.eye(self.n)
 
         if current_weights is None:
             current_weights = np.ones(self.n) / self.n
@@ -167,7 +181,7 @@ class PortfolioOptimizer:
         ]
 
         prob = cp.Problem(objective, constraints)
-        prob.solve(warm_start=True, verbose=False)
+        self._solve(prob, warm_start=True, verbose=False)
 
         if prob.status in ("optimal", "optimal_inaccurate") and w.value is not None:
             weights = np.array(w.value).flatten()
@@ -207,7 +221,7 @@ class PortfolioOptimizer:
                 k >= 0,
             ]
             prob = cp.Problem(obj, cons)
-            prob.solve(verbose=False)
+            self._solve(prob, verbose=False)
             if prob.status in ("optimal", "optimal_inaccurate") and y.value is not None and k.value and k.value > 1e-10:
                 w_val = (y.value / k.value).flatten()
                 w_val = np.clip(w_val, 0, 1)
@@ -237,7 +251,7 @@ class PortfolioOptimizer:
                     constraints.append(cp.sum(w[indices]) <= limit)
 
         prob = cp.Problem(objective, constraints)
-        prob.solve(warm_start=True, verbose=False)
+        self._solve(prob, warm_start=True, verbose=False)
 
         if prob.status in ("optimal", "optimal_inaccurate") and w.value is not None:
             weights = np.clip(np.array(w.value).flatten(), 0, 1)
