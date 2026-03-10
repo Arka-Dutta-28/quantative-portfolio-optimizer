@@ -53,21 +53,22 @@ class _AssetForecaster:
         self._models: dict[str, Any] = {
             "ridge": Ridge(alpha=1.0),
             "rf": RandomForestRegressor(
-                n_estimators=100,
+                n_estimators=50,
                 max_depth=5,
                 min_samples_leaf=5,
                 random_state=random_state,
-                n_jobs=-1,
+                n_jobs=1,
             ),
         }
         if _XGB_AVAILABLE:
             self._models["xgb"] = XGBRegressor(
-                n_estimators=100,
+                n_estimators=50,
                 max_depth=4,
                 learning_rate=0.05,
                 subsample=0.8,
                 colsample_bytree=0.7,
                 random_state=random_state,
+                n_jobs=1,
                 verbosity=0,
             )
         self._weights: dict[str, float] = {}
